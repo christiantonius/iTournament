@@ -1,7 +1,4 @@
-import java.util.Collections;
 import java.util.Scanner;
-import java.util.Vector;
-
 
 public class iTournament {
 	public static void main(String[] args) {
