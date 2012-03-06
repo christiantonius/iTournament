@@ -22,15 +22,15 @@ public class Player { // class for a player
 		isCaptain = true;
 	}
 	
-	int checkNumber() { // return the jersey number of a player
+	int getNumber() { // return the jersey number of a player
 		return jerseyNumber;
 	}
 	
-	String checkName() { // return the name of a player
+	String getName() { // return the name of a player
 		return playerName;
 	}
 	
-	boolean checkCaptain() { // return true if the player is the captain of the team
+	boolean getCaptain() { // return true if the player is the captain of the team
 		return isCaptain;
 	}
 }
