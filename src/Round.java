@@ -1,4 +1,4 @@
-import java.util.*;
+import java.util.Vector;
 
 public class Round {
 	
@@ -16,11 +16,27 @@ public class Round {
 			teams.add(t);
 	}
 	
-	public boolean contains(Team t) {
-		return teams.contains(t);
+	public boolean contains(String str) {
+	
+		if(getTeam(str)!=null)
+			return true;
+		
+		else return false;
 	}
 	
-	public void setWinner( Team t ) {
+	public Team getTeam(String str) {
+		
+		for(int i=0; i<teams.size(); i++) 
+			if(teams.elementAt(i).getTeamName().equals(str))
+				return teams.elementAt(i);
+		
+		//assume input is correct
+		return null;
+	}
+	
+	public void setWinner( String str ) {
+		
+		Team t = getTeam(str);
 		winner = t;
 		int winnerIndex = teams.indexOf(t);
 		if(winnerIndex ==1)

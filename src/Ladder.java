@@ -1,5 +1,10 @@
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 
 public class Ladder {
 	
@@ -7,23 +12,26 @@ public class Ladder {
 	private Round[] CurrRounds, NewRounds;
 		
 	//Initialise new Ladder system
-	public Ladder(String data) {
-		readPairings(data);	
+	//The String pairings is the name of the text file which contains the Pairings which have been randomly created by the class pair
+	//The data is pairings.txt is used to create the array of Rounds, CurrRounds
+	public Ladder(String pairings) {
+		readPairings(pairings);	
 		//The new fixtures. Divided by 2 as the number of rounds will be halved
-		NewRounds = new Round[CurrNoOfRounds/2];	
+		NewRounds = new Round[CurrNoOfRounds/2];
 	}
 	
-	//Advance teams till the final round(when current No of Rounds = 1)	
+	//Advance the winners from the current rounds to the next
 	public void createFixtures() {
 		
 		//If CurrNoOfRounds = 1, then it is already the final match
 		if(CurrNoOfRounds==1)
-			System.out.println("It is already the final round");
+			//System.out.println(CurrRounds[0].getWinner().getTeamName() + " has won the final round");
+			saveCurrRoundResults();
 		
 		else { 
 			int currCount = 0, newCount = 0;
 			//create a temp round to store the winners from the current
-			Round newRound;			
+			Round newRound;
 			
 			while(currCount < CurrNoOfRounds) {
 				newRound = new Round();
@@ -37,8 +45,9 @@ public class Ladder {
 				newCount++;												
 				currCount++;
 			}	//Now the new fixtures for one round have been created
-		
-			saveNewRoundInfo(NewRounds);
+			
+			
+			saveCurrRoundResults();
 			//the new fixtures we just computed becomes the current fixtures
 			CurrRounds = NewRounds;
 			//Update the number of rounds
@@ -47,23 +56,26 @@ public class Ladder {
 		}
 	}
 	
-	public void saveWinner(Team t) {
+	//This function must be called every time the winner has been declared and needs to be input into iTournament
+	public void saveWinner(String teamName) {
 		for(int i=0; i<CurrRounds.length; i++) {
-			if(CurrRounds[i].contains(t))
-				CurrRounds[i].setWinner(t);
+			if(CurrRounds[i].contains(teamName))
+				CurrRounds[i].setWinner(teamName);
 		}
 	}
 	
-	public void saveNewRoundInfo (Round[] newR) {
+	//This function saves the results of the CurrentRounds before the data is overwritten by NewRounds
+	//It saves the total number of teams in this round and the winner and loser for each round
+	public void saveCurrRoundResults () {
 		
+		//Create a text file and write data
 		try{
-			FileWriter outFile = new FileWriter("Round of " + 2*newR.length);
+			FileWriter outFile = new FileWriter("Round of " + CurrRounds.length);
 			PrintWriter out = new PrintWriter(outFile);
-		
+			
 			out.printf("%d\n", CurrNoOfRounds);
 			for (int i = 0; i < CurrNoOfRounds; i++) {
-				//Player tempPlayer = _team.playerList.get(i);l
-				out.printf("%s won %s", CurrRounds[i].getWinner().getTeamName(), CurrRounds[i].getLoser().getTeamName());
+				out.printf("%s\nwon\n%s\n", CurrRounds[i].getWinner().getTeamName(), CurrRounds[i].getLoser().getTeamName());
 				out.println();
 			}
 			out.close();
@@ -72,7 +84,9 @@ public class Ladder {
 			e.printStackTrace();
 		}
 	}
-
+	
+	//This function searches for "textfile".txt and reads the data inside to initialize the variables
+	//CurrNoOfRounds and CurrRounds
 	public void readPairings(String textfile) {
 		try{
 			  // Open the file that is the first 
@@ -89,7 +103,6 @@ public class Ladder {
 			  int count=0;
 			  //Read File Line By Line
 			  while ((strLine = br.readLine()) != null)   {
-			  // Print the content on the console
 				  t = new Team();
 				  t.loadTeam(strLine);
 				  rnd.addTeam(t);
@@ -105,14 +118,4 @@ public class Ladder {
 			  System.err.println("Error: " + e.getMessage());
 		}
 	}
-/*
-	//main function to test the createFixtures function
-	public static void main( String[]args ) {
-		
-		Round[] InitialRounds = null;
-		readTextFile(InitialRounds);		
-		LadderAdvancement ladder = new LadderAdvancement(InitialNoOfRounds/2, InitialRounds);
-		ladder.createFixtures();
-		System.out.println(ladder.CurrRounds[0].getWinner().checkTeamName());		//Print the winner of the final match	
-	}*/
 }
