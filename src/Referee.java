@@ -2,12 +2,10 @@
 public class Referee { // class for a referee
 	String refereeName;
 	double refereeCost;
-	String contactNumber;
 	
 	public Referee() { // create dummy referee with 0 cost
 		refereeName = "dummy";
 		refereeCost = 0.0;
-		contactNumber = null;
 	}
 	
 	public void setName (String name) { // set the name of the referee
@@ -18,19 +16,11 @@ public class Referee { // class for a referee
 		refereeCost = cost;
 	}
 	
-	public void setContact (String number) { // set the contact number of the referee
-		contactNumber = number;
-	}
-	
-	String checkName() { // return the name of a player
+	String getName() { // return the name of a player
 		return refereeName;
 	}
 	
-	double checkCost() { // return the cost of the referee 
+	double getCost() { // return the cost of the referee 
 		return refereeCost;
-	}
-	
-	String checkContactNumber() { // return the contact number of the referee
-		return contactNumber;
 	}
 }

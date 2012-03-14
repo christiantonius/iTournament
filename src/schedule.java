@@ -8,7 +8,7 @@ public class schedule{
 			System.out.println("please type in the event name");
 			name =sc.nextLine();
 			
-			File file = new File(name+".txt");
+			File file = new File(name+".ivt");
 			Scanner scanner = new Scanner(file);
 			if(scanner.hasNext())
 				name=(scanner.nextLine());
@@ -20,7 +20,7 @@ public class schedule{
 		public void setSchedule(){
 			int i=1;
 			while(num>1){
-				System.out.println("the round"+i+"will be on May "+(i*3+5)+"th");
+				System.out.println("the round"+i+"will be on May "+(i*2+5)+"th");
 				i++;
 				num/=2;
 			}

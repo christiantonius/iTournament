@@ -1,5 +1,4 @@
 import java.io.*;
-import java.util.Scanner;
 import java.util.Vector;
 
 public class Team { // class for a team
@@ -12,16 +11,12 @@ public class Team { // class for a team
 		playerList = new Vector<Player>(); 
 	}
 	
-	public void setTeamName (){ // set the team name
-		Scanner sc = new Scanner(System.in);
-		System.out.println("Enter team name:");
-		teamName = sc.nextLine();
+	public void setTeamName (String name){ // set the team name
+		teamName = name;
 	}
 	
-	public void setTeamSize() { // set the team size
-		Scanner sc = new Scanner(System.in);
-		System.out.println("Enter team size:");
-		teamSize = sc.nextInt();
+	public void setTeamSize(int size) { // set the team size
+		teamSize = size;
 	}
 	
 	public String getTeamName() { // return the team name
@@ -53,23 +48,13 @@ public class Team { // class for a team
 		captain.setCaptain();
 	}
 	
-	public void registerPlayer() {
-		int i = teamSize;
-		while (i > 0) {
-			Player tempPlayer = new Player(); // create a new player
-			
-			Scanner sc = new Scanner(System.in);
-			System.out.println("Enter player name:");
-			String tempName = sc.nextLine();
-			tempPlayer.setName(tempName); // store the player's name
-			
-			System.out.println("Enter player number:");
-			int tempNumber = sc.nextInt();
-			tempPlayer.setJerseyNumber(tempNumber); // store the player's jersey number
-			
-			addPlayer(tempPlayer); // add the player into the team
-			i--;
-		}
+	public void registerPlayer(String name, int number) {
+		Player tempPlayer = new Player(); // create a new player
+		
+		tempPlayer.setName(name); // store the player's name
+		tempPlayer.setJerseyNumber(number); // store the player's jersey number
+		
+		addPlayer(tempPlayer); // add the player into the team
 	}
 	
 	/************************************************
@@ -84,7 +69,8 @@ public class Team { // class for a team
 	 */
 	public void saveTeam (Team _team) { 
 		try{
-			FileWriter outFile = new FileWriter(teamName);
+			File file = new File("data/" + teamName + ".itm");
+			FileWriter outFile = new FileWriter(file);
 			PrintWriter out = new PrintWriter(outFile);
 		
 			out.printf("%s\n", _team.getTeamName());
@@ -106,6 +92,7 @@ public class Team { // class for a team
 	
 	// load a team from a text file
 	public void loadTeam (String fileName) throws IOException {
+		fileName = "data/" + fileName;
 		// Declare and initialize local variables 
 		FileInputStream fStream = null;		
 		
@@ -121,20 +108,20 @@ public class Team { // class for a team
 			
 			// read the first two lines
 			strLine = br.readLine();
-			teamName = strLine;
+			teamName = strLine; // load team name
 			strLine = br.readLine();
-			teamSize = Integer.parseInt(strLine);
+			teamSize = Integer.parseInt(strLine); // load team size
 			
 			// read file line by line
 			int i = 0;
 			while (i < getTeamSize()) {
-				Player tempPlayer = new Player();
+				Player tempPlayer = new Player(); // create a dummy player
 				strLine = br.readLine();
-				tempPlayer.setName(strLine);
+				tempPlayer.setName(strLine); // set the player name
 				strLine = br.readLine();
-				tempPlayer.setJerseyNumber(Integer.parseInt(strLine));
-				addPlayer(tempPlayer);
-				i++;
+				tempPlayer.setJerseyNumber(Integer.parseInt(strLine)); // set the player number
+				addPlayer(tempPlayer); // add the player to the team's player list
+				i++; // next player
 			}
 		}
 		
