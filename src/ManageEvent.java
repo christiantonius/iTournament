@@ -1,10 +1,10 @@
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.util.Vector;
 
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Button;
@@ -15,17 +15,17 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
-import org.eclipse.ui.forms.widgets.FormToolkit;
 import org.eclipse.wb.swt.SWTResourceManager;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+
+import twitter4j.TwitterException;
 
 
 public class ManageEvent extends Dialog {
 
 	protected Object result;
 	protected Shell shell;
-	private final FormToolkit formToolkit = new FormToolkit(Display.getDefault());
 	private Table table_eventList;
 	private Event existingEvent = new Event();
 
@@ -42,8 +42,9 @@ public class ManageEvent extends Dialog {
 	/**
 	 * Open the dialog.
 	 * @return the result
+	 * @throws IOException 
 	 */
-	public Object open() {
+	public Object open() throws IOException {
 		createContents();
 		populateTable();
 		shell.open();
@@ -78,24 +79,105 @@ public class ManageEvent extends Dialog {
 		center(shell);
 		
 		Button btn_editDetails = new Button(shell, SWT.NONE);
-		btn_editDetails.setEnabled(false);
 		btn_editDetails.setFont(SWTResourceManager.getFont("Lucida Grande", 36, SWT.BOLD));
 		btn_editDetails.setBounds(95, 370, 300, 150);
 		btn_editDetails.setText("Edit Details");
+		btn_editDetails.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				if(table_eventList.getItemCount() != 0) {
+					TableItem[] tableItems = table_eventList.getSelection();
+					String eventName = tableItems[0].getText(0);
+				    boolean hasResultFile = false, hasTimingFile = false;
+					
+				    hasTimingFile = hasTimingFiles(eventName);
+				    hasResultFile = hasResultFiles(eventName);
+				    
+					//if no .timings and .result file exist
+					if(hasTimingFile == false && hasResultFile == false)	{			
+						Event existingEvent = new Event();
+						
+						try {
+							existingEvent.loadEvent(eventName + ".event");
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+						try {
+							existingEvent.loadReferee(eventName + ".ref");
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+						
+						CreateNewEvent_1 editEventDetails = new CreateNewEvent_1(shell, shell.getStyle());
+						editEventDetails.open(existingEvent);		
+						try {
+							populateTable();
+						} catch (IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+					}
+					
+					else {
+						String dialogMessage = eventName + " has started, no editing of details is allowed.";
+						MessageDialog.openError(shell, "Error", dialogMessage);
+					}
+				}
+			}
+		});
+
 		
 		Button btn_viewSchedule = new Button(shell, SWT.NONE);
-		btn_viewSchedule.setEnabled(false);
 		btn_viewSchedule.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				if(table_eventList.getItemCount() != 0) {	
 					TableItem[] tableItems = table_eventList.getSelection();
 					String eventName = tableItems[0].getText(0);
+				    boolean hasResultFile = false, hasTimingFile = false;
 					
-					try {
-						Pair pair = new Pair(eventName);
-					} catch (FileNotFoundException e1) {
-						e1.printStackTrace();
+				    hasTimingFile = hasTimingFiles(eventName);
+				    hasResultFile = hasResultFiles(eventName);
+
+					//if no .timings and .result file exist
+					if(hasTimingFile == false && hasResultFile == false)	{
+						String dialogMessage = "Confirm Create Pairing for " + eventName + "?";
+						String[] dialogButtonLabels = {"Cancel", "Ok"};
+						MessageDialog newDialog = new MessageDialog(shell, null, null, dialogMessage, MessageDialog.WARNING, dialogButtonLabels, 0);
+						int returnCode = newDialog.open();
+						
+						//if user press OK
+						if(returnCode == 1) {
+							Pair pair = new Pair(eventName);
+							pair.createPairing();
+							
+							Event currentEvent = new Event();
+							try {
+								currentEvent.loadEvent(eventName + ".event");
+							} catch (IOException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+							
+							Fixture fixture = new Fixture(shell, shell.getStyle());
+							fixture.open(currentEvent);
+						}
+					}
+					
+					else {
+						Ladder currentLadder = new Ladder(eventName);
+						currentLadder.loadLadder(eventName);
+						
+						Event currentEvent = new Event();
+						try {
+							currentEvent.loadEvent(eventName + ".event");
+						} catch (IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+						
+						Fixture fixture = new Fixture(shell, shell.getStyle());
+						fixture.open(currentEvent, currentLadder);
 					}
 				}
 			}
@@ -112,26 +194,37 @@ public class ManageEvent extends Dialog {
 			   		int index = table_eventList.getSelectionIndex();
 			   	
 					TableItem[] tableItems = table_eventList.getSelection();
-					String eventFileName = tableItems[0].getText(0) + ".ivt";
+					String eventName = tableItems[0].getText(0) ;
+					String eventFileName = eventName + ".event";
 					
-					try {
-						existingEvent.loadEvent(eventFileName);
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+					String dialogMessage = "Confirm cancel the Event \"" + eventName + " and delete all relevant data?";
+					boolean isConfirm = MessageDialog.openConfirm(shell, "Confirmation", dialogMessage);
+
+					if(isConfirm == true) {
+						try {
+							existingEvent.loadEvent(eventFileName);
+						} catch (IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+						
+						try {
+							existingEvent.deleteAllEventRelatedFile();
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+							
+						table_eventList.remove(index);
+						if(index != 0)													table_eventList.setSelection(index-1);
+					   	else if(table_eventList.getItemCount() != 0)		table_eventList.setSelection(0);
+						
+						try {
+							populateTable();
+						} catch (IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
 					}
-									
-					Vector<Team> teamList = existingEvent.getTeamList();
-					for(int i=0; i<teamList.size(); i++) {
-						String teamFileName = teamList.get(i).getTeamName() + ".itm";
-						existingEvent.deleteFile(teamFileName);		//delete team file
-					}
-					
-					existingEvent.deleteFile(eventFileName);		//delete event file
-								
-					table_eventList.remove(index);
-					if(index != 0)										table_eventList.setSelection(index-1);
-				   	else if(table_eventList.getItemCount() != 0)		table_eventList.setSelection(0);
 				}
 			}
 		});
@@ -154,13 +247,24 @@ public class ManageEvent extends Dialog {
 		grp_eventList.setText("Event List");
 		grp_eventList.setBounds(100, 20, 1080, 330);
 		
-		table_eventList = formToolkit.createTable(grp_eventList, SWT.BORDER | SWT.FULL_SELECTION);
+		table_eventList = new Table(grp_eventList, SWT.BORDER | SWT.FULL_SELECTION);
 		table_eventList.setFont(SWTResourceManager.getFont("Lucida Grande", 14, SWT.NORMAL));
 		table_eventList.setBounds(10, 10, 1056, 293);
-		formToolkit.paintBordersFor(table_eventList);
 		table_eventList.setHeaderVisible(true);
 		table_eventList.setLinesVisible(true);
 		initTable(table_eventList);
+		
+		Image twitterLogo = new Image(Display.getCurrent(), HomePage.class.getResourceAsStream("twitter-button.png"));
+		Button btn_tweet = new Button(shell, SWT.NONE);
+		btn_tweet.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				TwitterDialog twitterDialog = new TwitterDialog(shell, shell.getStyle());
+				twitterDialog.open();
+			}
+		});
+		btn_tweet.setBounds(1135, 600, 50, 50);
+		btn_tweet.setImage(twitterLogo);
 
 	}
 	
@@ -178,34 +282,79 @@ public class ManageEvent extends Dialog {
 		}
 	}
 	
-	private static void addTableItem(Table table, String name) {
+	private static void addTableItem(Table table, String name, String venue, String dateTime) {
 		boolean isEmpty = false;
 		if(table.getItemCount() == 0)	isEmpty =true;
 		
 		 TableItem item = new TableItem(table, SWT.NONE);
 		 item.setText(0, name);
+		 item.setText(1, venue);
+		 item.setText(2, dateTime);
 		 
 		 if(isEmpty)		table.setSelection(0);
 	}
 	
-	private void populateTable() {
-		String[] eventList = getEventFiles();
+	private void populateTable() throws IOException {
+		table_eventList.removeAll();
+		String[] eventList = getFiles(".event");
 		
+		if(eventList == null)	
+			return;
+
 		int noOfEvents = eventList.length;
 		
 		for(int i=0; i<noOfEvents; i++) {
-			String event = eventList[i].substring(0, eventList[i].length()-4);
-			addTableItem(table_eventList, event);
+			Event currentEvent = new Event();
+			String eventName = eventList[i].substring(0, eventList[i].length()-6);
+
+			currentEvent.loadEvent(eventName + ".event");
+			
+			String dateTime = currentEvent.getFormattedDate() + " " + currentEvent.getFormattedTime();
+
+			addTableItem(table_eventList, currentEvent.getEventName(), currentEvent.getVenue(), dateTime);
 		}
 	}
 	
-	private String[] getEventFiles() {
+	private boolean hasTimingFiles(String eventName) {
+		int timingListCount = 0;
+		String[] timingList = getFiles(".timings");
+
+		if(timingList.length != 0) {
+			for(int i=0; i<timingList.length; i++) {
+				if(timingList[i].startsWith(eventName))
+					timingListCount++;
+			}
+			
+			if(timingListCount > 0)	return true;
+		}
 		
-		ExtensionFilter filter = new ExtensionFilter(".ivt");
+		return false;		
+	}
+	
+	private boolean hasResultFiles(String eventName) {
+		int resultListCount = 0;
+		String[] resultList = getFiles(".results");
+
+		if(resultList.length != 0) {
+			for(int i=0; i<resultList.length; i++) {
+				if(resultList[i].startsWith(eventName))
+					resultListCount++;
+			}
+			
+			if(resultListCount > 0)	return true;
+		}
+		
+		return false;		
+	}
+	
+	
+	private String[] getFiles(String ext) {
+		
+		ExtensionFilter filter = new ExtensionFilter(ext);
 		File dir = new File("data/");
 
 		String[] list = dir.list(filter);
-
+		
 		return list;
 	}
 	

@@ -8,17 +8,72 @@ import java.io.PrintWriter;
 
 public class Ladder {
 	
-	private int CurrNoOfRounds;
+	private int firstNoOfRounds, CurrNoOfRounds, roundItr;
 	private Round[] CurrRounds, NewRounds;
 	private int[] firstTime; //the timing for the first ever match in iTournament
+	private String eventName;
 	
 	//Initialise new Ladder system
 	//The String pairings is the name of the text file which contains the Pairings which have been randomly created by the class pair
 	//The data is pairings.txt is used to create the array of Rounds, CurrRounds
 	public Ladder(String pairings) {
+		eventName = pairings;
 		readPairings(pairings);	
 		//The new fixtures. Divided by 2 as the number of rounds will be halved
 		NewRounds = new Round[CurrNoOfRounds/2];
+		firstNoOfRounds = CurrNoOfRounds;
+	}
+	
+	public Ladder() {
+	}
+	
+	public int getCurrNoOfRounds() {
+		return CurrNoOfRounds;
+	}
+	
+	public int getFirstNoOfRounds() {
+		return firstNoOfRounds;
+	}
+	
+	public int getRoundItr() {
+		return roundItr;
+	}
+	
+	public String getFirstTeamOfTheMatch(int i) {
+		return CurrRounds[i].getFirstTeam().getTeamName();
+	}
+	
+	public String getSecondTeamOfTheMatch(int i) {
+		return CurrRounds[i].getSecondTeam().getTeamName();
+	}
+	
+	public String getMatchDate(int i) {
+		return CurrRounds[i].getFormattedDate();
+	}
+	
+	public String getMatchTime(int i) {
+		return CurrRounds[i].getFormattedTime();
+	}
+	
+	public String getWinner(int index) {
+		Team winner = CurrRounds[index].getWinner();
+		
+		if(winner != null)
+			return winner.getTeamName();
+		
+		else return null;
+	}
+	
+	public int[] getScores(int index) {
+		int[] scores = new int[2];
+		scores[0] = CurrRounds[index].getWinScore();
+		scores[1] = CurrRounds[index].getLosScore();
+		
+		return scores;
+	}
+	
+	public String getEventName() {
+		return eventName;
 	}
 	
 	//Advance the winners from the current rounds to the next
@@ -41,7 +96,7 @@ public class Ladder {
 				currCount++;
 				//Add 2nd match winner of 1st round to 1st match of 2nd round
 				newRound.addTeam(CurrRounds[currCount].getWinner());					
-				NewRounds[newCount] = newRound;						
+				NewRounds[newCount] = newRound;
 				//Iterate through the array
 				newCount++;												
 				currCount++;
@@ -104,7 +159,7 @@ public class Ladder {
 			//can be further refined to take into account months with 31 days
 			//Or.....we can just set the event date to be somewhere in the middle of the month, when creating event
 			if(date>30) {
-				date = 0;
+				date = 1;
 				month++;
 			}
 			
@@ -148,15 +203,15 @@ public class Ladder {
 		
 		try{
 			//the file created is a .timings file
-			FileWriter outFile = new FileWriter("Timings - Round of " + CurrRounds.length + " workflow" + ".timings");
+			FileWriter outFile = new FileWriter("data/" + eventName + " - Round of " + CurrRounds.length + ".timings");
 			PrintWriter out = new PrintWriter(outFile);
 			
-			out.printf("%d Rounds\n\n", CurrNoOfRounds);
+			out.printf("%d\n\n", CurrNoOfRounds);
 			
 			for (int i = 0; i < CurrNoOfRounds; i++) {
 				rnd = CurrRounds[i];
-				out.println("Round " + (i+1) + " at:");
-				out.println(rnd.getStartTime());
+				out.println(rnd.getFormattedDate());
+				out.println(rnd.getFormattedTime());
 				out.println();
 			}
 			out.close();
@@ -185,7 +240,7 @@ public class Ladder {
 		//Create a text file and write data
 		try{
 			//The file created is a .results file
-			FileWriter outFile = new FileWriter("Results - Round of " + CurrRounds.length + ".results");
+			FileWriter outFile = new FileWriter("data/" + eventName + " - Round of " + CurrRounds.length + ".results");
 			PrintWriter out = new PrintWriter(outFile);
 			
 			out.printf("%d\n", CurrNoOfRounds);
@@ -202,13 +257,141 @@ public class Ladder {
 		}
 	}
 	
-	//This function searches for "textfile".txt and reads the data inside to initialize the variables
+	//saves the data in current ladder object
+	//to save the round array
+	//		-Round.java has has saveRound.
+	//		-Go through CurrRounds[], and invoke save Round for each round in this array
+	public void saveLadder() {
+		try{
+			//The file created is a .ladder file
+			//FileWriter outFile = new FileWriter("data/" + eventName + " - Round of " + CurrRounds.length + ".ladder");
+			
+			FileWriter outFile = new FileWriter("data/" + eventName + ".ladder");
+			PrintWriter out = new PrintWriter(outFile);
+			
+			out.println(eventName);
+			out.println(CurrNoOfRounds);
+			out.println();
+			
+			for(int i=0; i<5; i++) {
+				out.print(firstTime[i] + " ");
+			}
+			out.println();
+			
+			for (int i = 0; i < CurrNoOfRounds; i++) {
+				CurrRounds[i].saveRound(eventName, CurrNoOfRounds, 1+i, false);
+			}
+			
+			out.close();
+		}
+		catch (IOException e){
+			e.printStackTrace();
+		}
+	}
+	
+	//search for eventname.ladder and create a ladder object based from data inside
+	//to create CurrRounds[], search for each .ROUND file generated during saveLadder() and recreate the rounds
+	public void loadLadder(String name) {
+		
+		FileInputStream fStream = null;		
+		
+		// Begin a block of code that handles exceptions
+		try{
+			// Open the file as a stream
+			//fStream = new FileInputStream("data/" + name + " - Round of " + num + ".ladder");
+			
+			fStream = new FileInputStream("data/" + name + ".ladder");
+			
+			// Get the object of DataInputStream
+			DataInputStream in = new DataInputStream(fStream);
+			BufferedReader br = new BufferedReader(new InputStreamReader(in));
+			String strLine;
+			
+			strLine = br.readLine();
+			eventName = strLine;
+			
+			strLine = br.readLine();
+			CurrNoOfRounds = Integer.parseInt(strLine);
+			
+			br.readLine();
+			strLine = br.readLine();
+			String[] str = strLine.split(" ");
+			
+			firstTime = new int[5];
+			for(int i=0; i<5; i++) {
+				firstTime[i] = Integer.parseInt(str[i]);
+			}
+			
+			Round rnd;
+			CurrRounds = new Round[CurrNoOfRounds];
+			NewRounds = new Round[CurrNoOfRounds/2];
+			for(int i=0; i<CurrNoOfRounds; i++) {
+				rnd = new Round();
+				rnd.loadRound(eventName, CurrNoOfRounds, 1+i, false);
+				CurrRounds[i] = rnd;
+			}
+		}
+		
+		catch (IOException e){
+			e.printStackTrace();
+		}
+	}
+	
+public void loadLadder(String name, int c) {
+		
+		FileInputStream fStream = null;		
+		
+		// Begin a block of code that handles exceptions
+		try{
+			// Open the file as a stream
+			//fStream = new FileInputStream("data/" + name + " - Round of " + num + ".ladder");
+			
+			fStream = new FileInputStream("data/" + name + ".ladder");
+			
+			// Get the object of DataInputStream
+			DataInputStream in = new DataInputStream(fStream);
+			BufferedReader br = new BufferedReader(new InputStreamReader(in));
+			String strLine;
+			
+			strLine = br.readLine();
+			eventName = strLine;
+			
+			strLine = br.readLine();
+			CurrNoOfRounds = c;
+			
+			br.readLine();
+			strLine = br.readLine();
+			String[] str = strLine.split(" ");
+			
+			firstTime = new int[5];
+			for(int i=0; i<5; i++) {
+				firstTime[i] = Integer.parseInt(str[i]);
+			}
+			
+			Round rnd;
+			CurrRounds = new Round[CurrNoOfRounds];
+			NewRounds = new Round[CurrNoOfRounds/2];
+			for(int i=0; i<CurrNoOfRounds; i++) {
+				rnd = new Round();
+				rnd.loadRound(eventName, CurrNoOfRounds, 1+i, false);
+				CurrRounds[i] = rnd;
+			}
+		}
+		
+		catch (IOException e){
+			e.printStackTrace();
+		}
+	}
+	
+	//This function searches for "pairing".pairing and reads the data inside to initialize the variables
 	//CurrNoOfRounds and CurrRounds
-	public void readPairings(String textfile) {
+	public void readPairings(String pairing) {
 		try{
 			  // Open the file that is the first 
 			  // command line parameter
-			  FileInputStream fstream = new FileInputStream(textfile);
+			
+			  String paringFile = "data/" + pairing + ".pairing";
+			  FileInputStream fstream = new FileInputStream(paringFile);
 			  // Get the object of DataInputStream
 			  DataInputStream in = new DataInputStream(fstream);
 			  BufferedReader br = new BufferedReader(new InputStreamReader(in));

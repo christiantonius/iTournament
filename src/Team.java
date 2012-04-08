@@ -4,31 +4,64 @@ import java.util.Vector;
 public class Team { // class for a team
 	String teamName;
 	Team opponent;
-	int teamSize, goalsFor, goalsAgainst; 
+	int teamSize, goalsFor, goalsAgainst, gamesWon; 
 	private Vector<Player> playerList; // has list of players, in a form of vector
 	
 	public Team () { // create a team with empty player list
 		playerList = new Vector<Player>(); 
 	}
 	
-	public void setTeamName (String name){ // set the team name
-		teamName = name;
+	public int compareTo(Team x) {
+		if( this.getGamesWon() < x.getGamesWon() )
+			return -1;
+		
+		if( this.getGamesWon() == x.getGamesWon() )
+			return 0;
+		
+		else
+			return 1;
+	}	
+	
+	public int getGamesWon() {
+		return gamesWon;
 	}
 	
-	public void setTeamSize(int size) { // set the team size
-		teamSize = size;
+	public void incGamesWon() {
+		gamesWon++;
+	}
+	
+	public void setTeamName (String name){ // set the team name
+		teamName = name;
 	}
 	
 	public String getTeamName() { // return the team name
 		return teamName;
 	}
 	
-	public int getTeamSize() { // return the team size
-		return teamSize;
+	public int getTeamSize() {
+		return playerList.size();
 	}
 	
 	public Vector<Player> getTeamList() { // return the vector of player list
 		return playerList;
+	}
+	
+	public String[] getAllPlayerNames() {
+		String[] playerNames = new String[playerList.size()];
+
+		for(int i=0; i<playerList.size(); i++) 
+			playerNames[i] = playerList.get(i).getName();
+	
+		return playerNames;
+	}
+	
+	public int[] getAllJerseyNumbers() {
+		int[] jerseyNumber = new int[playerList.size()];
+		
+		for(int i=0; i<playerList.size(); i++) 
+			jerseyNumber[i] = playerList.get(i).getNumber();
+		
+		return jerseyNumber;
 	}
 	
 	public void setOpponent (Team otherTeam) { // set the opponent for this team
@@ -57,6 +90,17 @@ public class Team { // class for a team
 		addPlayer(tempPlayer); // add the player into the team
 	}
 	
+	public void removePlayer(int jerseyNumber) {
+		for(int i=0; i<playerList.size(); i++) {
+			if(playerList.get(i).getNumber() == jerseyNumber)
+				playerList.remove(i);		
+		}
+	}
+	
+	public void removeAllPlayer() {
+		playerList.clear();
+	}
+	
 	/************************************************
 	 * save the team information into a text file
 	 * format: 
@@ -67,16 +111,16 @@ public class Team { // class for a team
 	 * player_number
 	 ************************************************  
 	 */
-	public void saveTeam (Team _team) { 
+	public void saveTeam () { 
 		try{
-			File file = new File("data/" + teamName + ".itm");
+			File file = new File("data/" + teamName + ".team");
 			FileWriter outFile = new FileWriter(file);
 			PrintWriter out = new PrintWriter(outFile);
 		
-			out.printf("%s\n", _team.getTeamName());
-			out.printf("%d\n", _team.getTeamSize());
-			for (int i = 0; i < _team.getTeamSize(); i++) {
-				Player tempPlayer = _team.playerList.get(i);
+			out.printf("%s\n", teamName);
+			out.printf("%d\n", playerList.size());
+			for (int i = 0; i < playerList.size(); i++) {
+				Player tempPlayer = playerList.get(i);
 				out.printf("%s\n", tempPlayer.getName());
 				out.printf("%d", tempPlayer.getNumber());
 				if (tempPlayer.getCaptain())
@@ -110,11 +154,11 @@ public class Team { // class for a team
 			strLine = br.readLine();
 			teamName = strLine; // load team name
 			strLine = br.readLine();
-			teamSize = Integer.parseInt(strLine); // load team size
+			int tempTeamSize = Integer.parseInt(strLine); // load team size
 			
 			// read file line by line
 			int i = 0;
-			while (i < getTeamSize()) {
+			while (i < tempTeamSize) {
 				Player tempPlayer = new Player(); // create a dummy player
 				strLine = br.readLine();
 				tempPlayer.setName(strLine); // set the player name
